@@ -1,0 +1,17 @@
+{
+  "name": "jantix",
+  "version": "0.1.0",
+  "description": "A fully-featured TypeScript library defining a self-contained 100% type-safe Redux architecture.",
+  "main": "src/index.ts",
+  "repository": "https://github.com/Ameobea/jantix",
+  "author": "Casey Primozic <me@ameo.link>",
+  "peerDependencies": {
+    "redux": "^4.0.1"
+  },
+  "license": "Blue Oak 1.0.0 (https://blueoakcouncil.org/license/1.0.0#markdown)",
+  "private": false,
+  "devDependencies": {
+    "@types/redux": "^3.6.0",
+    "redux": "^4.0.1"
+  }
+}
