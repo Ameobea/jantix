@@ -12,6 +12,15 @@
   "private": false,
   "devDependencies": {
     "@types/redux": "^3.6.0",
-    "redux": "^4.0.1"
-  }
+    "@typescript-eslint/eslint-plugin": "^1.9.0",
+    "@typescript-eslint/parser": "^1.9.0",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^4.3.0",
+    "redux": "^4.0.1",
+    "typescript": "^3.4.5"
+  },
+  "scripts": {
+    "build": "tsc ./examples/basic.ts --lib es2019,dom --outDir ./dist"
+  },
+  "type": "module"
 }

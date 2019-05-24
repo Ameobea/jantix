@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "module": "esnext",
+    "module": "umd",
     "target": "es5",
-    "lib": ["esnext", "dom"],
+    "lib": ["es2018", "dom"],
     "sourceMap": true,
     "allowJs": true,
     "moduleResolution": "node",
@@ -27,6 +27,6 @@
       "*": ["./node_modules/@types/*", "*"]
     }
   },
-  "include": ["index.d.ts"],
+  "include": ["index.d.ts", "./src", "./examples"],
   "exclude": ["node_modules", "build"]
 }

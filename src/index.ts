@@ -1,5 +1,7 @@
 import { applyMiddleware, compose, createStore, combineReducers } from 'redux';
 
+var _window: any = typeof window === 'undefined' ? {} : window;
+
 type ValueOf<T> = T[keyof T];
 
 interface ActionGroup<
@@ -12,19 +14,25 @@ interface ActionGroup<
   subReducer: SubReducer;
 }
 
-const buildActionGroup = <
+export const buildActionGroup = <
   ActionType extends string,
   ActionCreator extends (...args: any[]) => { type: ActionType },
   State,
   SubReducer extends (state: State, action: ReturnType<ActionCreator>) => State
->(
-  actionCreator: ActionCreator,
-  subReducer: SubReducer
-): ActionGroup<ActionType, ActionCreator, State, SubReducer> => ({
+>({
+  actionCreator,
+  subReducer,
+}: {
+  actionCreator: ActionCreator;
+  subReducer: SubReducer;
+}): ActionGroup<ActionType, ActionCreator, State, SubReducer> => ({
   actionCreator,
   subReducer,
 });
 
+/**
+ * An internal helper type that narrows the type of `actions` to an object of `ActionGroup`s.
+ */
 const buildReduxModule = <
   State,
   AllActionTypes extends string,
@@ -33,25 +41,22 @@ const buildReduxModule = <
 >(
   initialState: State,
   actions: {
-    [K in AllActionTypes]: ActionGroup<
-      K,
-      Extract<
-        AllActionCreators,
-        (...args: any[]) => Extract<ReturnType<AllActionCreators>, { type: K }>
-      >,
+    [ActionType in AllActionTypes]: ActionGroup<
+      ActionType,
+      // Finds the single action creator from all of the action creators that has a return type whose `type` key
+      // matches this action's `type`.
+      Extract<AllActionCreators, (...args: any[]) => Extract<ReturnType<AllActionCreators>, { type: ActionType }>>,
       State,
       Extract<
         AllSubReducers,
-        (state: State, action: Extract<ReturnType<AllActionCreators>, { type: K }>) => State
+        (state: State, action: Extract<ReturnType<AllActionCreators>, { type: ActionType }>) => State
       >
     >
   }
-) => {
-  return {
-    initialState,
-    actions,
-  };
-};
+) => ({
+  initialState,
+  actions,
+});
 
 type AllActionsOf<
   T extends {
@@ -77,45 +82,7 @@ type AllSubReducersOf<
   }
 > = { [K in keyof T]: T[K]['subReducer'] };
 
-const manuallyTypedModule = {
-  DELETE_VALUE: buildActionGroup<
-    'DELETE_VALUE',
-    (key: string) => { type: 'DELETE_VALUE'; key: string },
-    { [key: string]: string },
-    (
-      state: { [key: string]: string },
-      action: { type: 'DELETE_VALUE'; key: string }
-    ) => { [key: string]: string }
-  >(
-    (key: string) => ({ type: 'DELETE_VALUE', key }),
-    (state: { [key: string]: string }, { key }) => ({ ...state, [key]: undefined })
-  ),
-  SET_VALUE: buildActionGroup<
-    'SET_VALUE',
-    (key: string, value: string) => { type: 'SET_VALUE'; key: string; value: string },
-    { [key: string]: string },
-    (
-      state: { [key: string]: string },
-      action: { type: 'SET_VALUE'; key: string; value: string }
-    ) => { [key: string]: string }
-  >(
-    (key: string, value: string) => ({ type: 'SET_VALUE', key, value }),
-    (state: { [key: string]: string }, { key, value }) => ({ ...state, [key]: value })
-  ),
-};
-
-const autoTypedModule = {
-  DELETE_VALUE: buildActionGroup(
-    (key: string) => ({ type: 'DELETE_VALUE', key }),
-    (state: { [key: string]: string }, { key }) => ({ ...state, [key]: undefined })
-  ),
-  SET_VALUE: buildActionGroup(
-    (key: string, value: string) => ({ type: 'SET_VALUE', key, value }),
-    (state: { [key: string]: string }, { key, value }) => ({ ...state, [key]: value })
-  ),
-};
-
-const buildModule = <
+export const buildModule = <
   State,
   Actions extends {
     [type: string]: {
@@ -125,41 +92,43 @@ const buildModule = <
   }
 >(
   initialState: State,
-  actions: Extract<
-    Actions,
-    {
-      [K in keyof Actions]: ActionGroup<
-        K,
-        Extract<
-          ValueOf<AllActionCreatorsOf<Actions>>,
-          (...args: any[]) => Extract<ValueOf<AllActionsOf<Actions>>, { type: K }>
-        >,
-        State,
-        Extract<
-          ValueOf<AllSubReducersOf<Actions>>,
-          (state: State, action: Extract<ValueOf<AllActionsOf<Actions>>, { type: K }>) => State
-        >
+  actions: {
+    [ActionType in keyof Actions]: ActionGroup<
+      ActionType,
+      Extract<
+        ValueOf<AllActionCreatorsOf<Actions>>,
+        (...args: any[]) => Extract<ValueOf<AllActionsOf<Actions>>, { type: ActionType }>
+      >,
+      State,
+      Extract<
+        ValueOf<AllSubReducersOf<Actions>>,
+        (state: State, action: Extract<ValueOf<AllActionsOf<Actions>>, { type: ActionType }>) => State
       >
-    }
-  >
+    >
+  }
 ) => {
-  type OurAllActionTypes = keyof Actions;
-  type OurAllActions = ValueOf<AllActionsOf<Actions>>;
   type OurAllActionCreators = ValueOf<AllActionCreatorsOf<Actions>>;
   type OurAllSubReducers = ValueOf<AllSubReducersOf<Actions>>;
 
-  return buildReduxModule<State, string, OurAllActionCreators, OurAllSubReducers>(
-    initialState,
-    actions
-  );
+  return buildReduxModule<State, string, OurAllActionCreators, OurAllSubReducers>(initialState, actions);
 };
 
-const builtModule = buildModule<{ [key: string]: string }, typeof autoTypedModule>(
-  {},
-  autoTypedModule
-);
-
-const buildStore = <
+/**
+ * Given an object defining the reducers and their internal action creators and sub-reducers, builds a Redux store and
+ * typed functions for interacting with it.
+ *
+ * This function MUST be called with an explicit type parameter of `typeof modules` provided in order to gain fully-
+ * typed results.  The syntax for that looks like this:
+ *
+ * ```ts
+ * const yourModules = { ... };
+ * const { dispatch, getState } = buildStore<typeof yourModules>(yourModules);
+ * ```
+ *
+ * @param modules The object defining the reducers to construct
+ * @param middleware An optional middleware object to add to the created store
+ */
+export const buildStore = <
   Modules extends {
     [stateKey: string]: {
       initialState: any;
@@ -167,9 +136,9 @@ const buildStore = <
         [type: string]: {
           actionCreator: (...args: any[]) => { type: string };
           subReducer: (
-            state: ValueOf<{ [K in keyof Modules]: Modules[K]['initialState'] }>,
+            state: ValueOf<{ [StateKey in keyof Modules]: Modules[StateKey]['initialState'] }>,
             action: { type: string }
-          ) => ValueOf<{ [K in keyof Modules]: Modules[K]['initialState'] }>;
+          ) => ValueOf<{ [StateKey in keyof Modules]: Modules[StateKey]['initialState'] }>;
         };
       };
     };
@@ -177,25 +146,20 @@ const buildStore = <
 >(
   modules: {
     [StateKey in keyof Modules]: {
-      initialState: { [K in keyof Modules]: Modules[K]['initialState'] }[StateKey];
+      initialState: { [StateKey in keyof Modules]: Modules[StateKey]['initialState'] }[StateKey];
       actions: {
         [ActionType in keyof Modules[StateKey]['actions']]: ActionGroup<
           ActionType,
           Extract<
             ValueOf<AllActionCreatorsOf<Modules[StateKey]['actions']>>,
-            (
-              ...args: any[]
-            ) => Extract<ValueOf<AllActionsOf<Modules[StateKey]['actions']>>, { type: ActionType }>
+            (...args: any[]) => Extract<ValueOf<AllActionsOf<Modules[StateKey]['actions']>>, { type: ActionType }>
           >,
           { [K in keyof Modules]: Modules[K]['initialState'] }[StateKey],
           Extract<
             ValueOf<AllSubReducersOf<Modules[StateKey]['actions']>>,
             (
               state: { [K in keyof Modules]: Modules[K]['initialState'] }[StateKey],
-              action: Extract<
-                ValueOf<AllActionsOf<Modules[StateKey]['actions']>>,
-                { type: ActionType }
-              >
+              action: Extract<ValueOf<AllActionsOf<Modules[StateKey]['actions']>>, { type: ActionType }>
             ) => { [K in keyof Modules]: Modules[K]['initialState'] }[StateKey]
           >
         >
@@ -220,8 +184,8 @@ const buildStore = <
     (acc: object, stateKey) => ({
       ...acc,
       [stateKey]: (state = modules[stateKey].initialState, action: { type: string }) => {
-        const subReducer = modules[stateKey].actions[action.type].subReducer;
-        return subReducer ? subReducer(state, action) : state;
+        const subModule = modules[stateKey].actions[action.type];
+        return subModule ? subModule.subReducer(state, action) : state;
       },
     }),
     {}
@@ -247,50 +211,23 @@ const buildStore = <
             Modules[StateKey]['actions'][K]['actionCreator']
           >['type']
         }
-      >]: Extract<
-        Modules[StateKey]['actions'][ActionType]['actionCreator'],
-        (...args: any[]) => { type: ActionType }
-      >
+      >]: Extract<Modules[StateKey]['actions'][ActionType]['actionCreator'], (...args: any[]) => { type: ActionType }>
     }
   };
 
-  const composeEnhancers: typeof compose =
-    (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+  const composeEnhancers: typeof compose = _window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
   const store = createStore(
     combineReducers(builtReducers),
-    composeEnhancers(applyMiddleware(middleware))
+    middleware ? composeEnhancers(applyMiddleware(middleware)) : undefined
   );
 
-  const dispatch = (action: AllActions): void => {
-    store.dispatch(action as any);
-  };
+  const dispatch = (action: AllActions): void => store.dispatch(action as any);
 
-  return { actionCreators, dispatch };
+  type FullState = { [K in keyof Modules]: Modules[K]['initialState'] };
+  const getState = (): FullState => store.getState() as FullState;
+
+  const __fullState: FullState = null as any;
+
+  return { actionCreators, dispatch, getState, __fullState };
 };
-
-const barModule = {
-  INCREMENT: buildActionGroup(
-    () => ({ type: 'INCREMENT' }),
-    ({ count }, _action) => ({ count: count + 1 })
-  ),
-  DECREMENT: buildActionGroup(
-    () => ({ type: 'DECREMENT' }),
-    ({ count }, _action) => ({ count: count - 1 })
-  ),
-};
-
-const bazModule = {
-  PUSH: buildActionGroup(
-    (val: number) => ({ type: 'PUSH', val }),
-    (state: number[], action) => [...state, action.val]
-  ),
-};
-
-const storeDefinition = {
-  foo: buildModule<{ [key: string]: string }, typeof autoTypedModule>({}, autoTypedModule),
-  bar: buildModule<{ count: number }, typeof barModule>({ count: 0 }, barModule),
-  baz: buildModule<number[], typeof bazModule>([], bazModule),
-};
-
-const { actionCreators, dispatch } = buildStore<typeof storeDefinition>(storeDefinition);
