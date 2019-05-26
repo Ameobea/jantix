@@ -22,7 +22,10 @@ const map = {
   DELETE_VALUE: buildActionGroup({
     actionCreator: (key: string) => ({ type: 'DELETE_VALUE', key }),
     subReducer: (state: { [key: string]: string }, action) =>
-      Object.entries(state).reduce((acc, [key, val]) => (key === action.key ? acc : { ...acc, [key]: val }), {}),
+      Object.entries(state).reduce(
+        (acc, [key, val]) => (key === action.key ? acc : { ...acc, [key]: val }),
+        {}
+      ),
   }),
   SET_VALUE: buildActionGroup({
     actionCreator: (key: string, value: string) => ({ type: 'SET_VALUE', key, value }),
@@ -46,12 +49,20 @@ const storeDefinition = {
   map: buildModule<{ [key: string]: string }, typeof map>({}, map),
 };
 
-const { actionCreators, dispatch, getState } = buildStore<typeof storeDefinition>(storeDefinition);
+const customReducers = {
+  storekey: (state: string = '', action: { type: 'CUSTOM'; val: string }) => state,
+};
+
+const { actionCreators, dispatch, getState, __customActions } = buildStore<
+  typeof storeDefinition,
+  typeof customReducers
+>(storeDefinition, undefined, customReducers);
 
 console.log(getState());
 
 dispatch(actionCreators.array.PUSH(3));
 dispatch(actionCreators.map.SET_VALUE('key', 'val'));
+dispatch({ type: 'CUSTOM', val: 'newState' });
 
 // Invalid actions will fail to type check
 //

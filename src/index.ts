@@ -113,6 +113,10 @@ export const buildModule = <
   return buildReduxModule<State, string, OurAllActionCreators, OurAllSubReducers>(initialState, actions);
 };
 
+type SecondArgumentOf<T> = T extends (arg1: any, arg2: infer A, ...args: any[]) => any ? A : undefined;
+
+type Id<T> = { [K in keyof T]: T[K] };
+
 /**
  * Given an object defining the reducers and their internal action creators and sub-reducers, builds a Redux store and
  * typed functions for interacting with it.
@@ -142,6 +146,10 @@ export const buildStore = <
         };
       };
     };
+  },
+  CustomReducers extends { [key: string]: (state: any, action: { type: string }) => any } = {},
+  CustomState extends { [K in keyof CustomReducers]: ReturnType<CustomReducers[K]> } = {
+    [K in keyof CustomReducers]: ReturnType<CustomReducers[K]>
   }
 >(
   modules: {
@@ -166,9 +174,12 @@ export const buildStore = <
       };
     }
   },
-  middleware?: any
+  middleware?: any,
+  customReducers: CustomReducers = {} as CustomReducers
 ) => {
-  type AllActions = ValueOf<
+  type CustomActions = ValueOf<{ [StateKey in keyof CustomReducers]: SecondArgumentOf<CustomReducers[StateKey]> }>;
+
+  type UserActions = ValueOf<
     {
       [StateKey in keyof Modules]: ReturnType<
         ValueOf<
@@ -179,6 +190,7 @@ export const buildStore = <
       >
     }
   >;
+  type AllActions = UserActions | CustomActions;
 
   const builtReducers = Object.keys(modules).reduce(
     (acc: object, stateKey) => ({
@@ -218,16 +230,19 @@ export const buildStore = <
   const composeEnhancers: typeof compose = _window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
   const store = createStore(
-    combineReducers(builtReducers),
+    combineReducers({ ...builtReducers, ...(customReducers as {}) }),
     middleware ? composeEnhancers(applyMiddleware(middleware)) : undefined
   );
 
   const dispatch = (action: AllActions): void => store.dispatch(action as any);
 
-  type FullState = { [K in keyof Modules]: Modules[K]['initialState'] };
+  type UserState = { [K in keyof Modules]: Modules[K]['initialState'] };
+  type FullState = UserState & CustomState;
+
   const getState = (): FullState => store.getState() as FullState;
 
   const __fullState: FullState = null as any;
+  const __customActions: CustomActions = null as any;
 
-  return { actionCreators, dispatch, getState, __fullState };
+  return { actionCreators, dispatch, getState, __fullState, __customActions };
 };

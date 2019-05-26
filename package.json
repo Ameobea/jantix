@@ -2,7 +2,8 @@
   "name": "jantix",
   "version": "0.1.0",
   "description": "A fully-featured TypeScript library defining a self-contained 100% type-safe Redux architecture.",
-  "main": "src/index.ts",
+  "main": "dist/index.ts",
+  "types": "dist/index.d.ts",
   "repository": "https://github.com/Ameobea/jantix",
   "author": "Casey Primozic <me@ameo.link>",
   "peerDependencies": {
@@ -20,7 +21,7 @@
     "typescript": "^3.4.5"
   },
   "scripts": {
-    "build": "tsc ./examples/basic.ts --lib es2019,dom --outDir ./dist"
+    "build": "tsc ./examples/basic.ts --lib es2018,dom --outDir ./dist && prettier --write --config .prettierrc dist/**/*.ts"
   },
   "type": "module"
 }

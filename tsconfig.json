@@ -5,7 +5,7 @@
     "target": "es5",
     "lib": ["es2018", "dom"],
     "sourceMap": true,
-    "allowJs": true,
+    "allowJs": false,
     "moduleResolution": "node",
     "rootDir": ".",
     "forceConsistentCasingInFileNames": true,
@@ -25,7 +25,8 @@
     "baseUrl": ".",
     "paths": {
       "*": ["./node_modules/@types/*", "*"]
-    }
+    },
+    "declaration": true
   },
   "include": ["index.d.ts", "./src", "./examples"],
   "exclude": ["node_modules", "build"]
