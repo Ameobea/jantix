@@ -3,11 +3,11 @@ import { buildModule, buildStore, buildActionGroup } from '../src/index';
 const counter = {
   INCREMENT: buildActionGroup({
     actionCreator: () => ({ type: 'INCREMENT' }),
-    subReducer: ({ count }, _action) => ({ count: count + 1 }),
+    subReducer: ({ count }: { count: number }, _action) => ({ count: count + 1 }),
   }),
   DECREMENT: buildActionGroup({
     actionCreator: () => ({ type: 'DECREMENT' }),
-    subReducer: ({ count }, _action) => ({ count: count - 1 }),
+    subReducer: ({ count }: { count: number }, _action) => ({ count: count - 1 }),
   }),
 };
 
@@ -22,10 +22,7 @@ const map = {
   DELETE_VALUE: buildActionGroup({
     actionCreator: (key: string) => ({ type: 'DELETE_VALUE', key }),
     subReducer: (state: { [key: string]: string }, action) =>
-      Object.entries(state).reduce(
-        (acc, [key, val]) => (key === action.key ? acc : { ...acc, [key]: val }),
-        {}
-      ),
+      Object.entries(state).reduce((acc, [key, val]) => (key === action.key ? acc : { ...acc, [key]: val }), {}),
   }),
   SET_VALUE: buildActionGroup({
     actionCreator: (key: string, value: string) => ({ type: 'SET_VALUE', key, value }),
@@ -63,6 +60,8 @@ console.log(getState());
 dispatch(actionCreators.array.PUSH(3));
 dispatch(actionCreators.map.SET_VALUE('key', 'val'));
 dispatch({ type: 'CUSTOM', val: 'newState' });
+
+const maybeInitd = getState().map['test'];
 
 // Invalid actions will fail to type check
 //
