@@ -1,6 +1,6 @@
 {
   "name": "jantix",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A fully-featured TypeScript library defining a self-contained 100% type-safe Redux architecture.",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
