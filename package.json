@@ -7,7 +7,8 @@
   "repository": "https://github.com/Ameobea/jantix",
   "author": "Casey Primozic <me@ameo.link>",
   "peerDependencies": {
-    "redux": "^4.0.1"
+    "redux": "^4.0.1",
+    "react-redux": "=7.1.0-alpha.5"
   },
   "license": "Blue Oak 1.0.0 (https://blueoakcouncil.org/license/1.0.0#markdown)",
   "private": false,
@@ -18,10 +19,11 @@
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^4.3.0",
     "redux": "^4.0.1",
-    "typescript": "^3.4.5"
+    "typescript": "^3.4.5",
+    "react-redux": "=7.1.0-alpha.5"
   },
   "scripts": {
-    "build": "tsc ./examples/basic.ts --lib es2018,dom --outDir ./dist && prettier --write --config .prettierrc dist/**/*.ts"
+    "build": "tsc -p tsconfig.json"
   },
   "type": "module"
 }

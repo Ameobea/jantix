@@ -47,21 +47,20 @@ const storeDefinition = {
 };
 
 const customReducers = {
-  storekey: (state: string = '', action: { type: 'CUSTOM'; val: string }) => state,
+  storekey: (state: string = '', _action: { type: 'CUSTOM'; val: string }) => state,
 };
 
-const { actionCreators, dispatch, getState, __customActions } = buildStore<
-  typeof storeDefinition,
-  typeof customReducers
->(storeDefinition, undefined, customReducers);
+const { actionCreators, dispatch, getState } = buildStore<typeof storeDefinition, typeof customReducers>(
+  storeDefinition,
+  undefined,
+  customReducers
+);
 
 console.log(getState());
 
 dispatch(actionCreators.array.PUSH(3));
 dispatch(actionCreators.map.SET_VALUE('key', 'val'));
 dispatch({ type: 'CUSTOM', val: 'newState' });
-
-const maybeInitd = getState().map['test'];
 
 // Invalid actions will fail to type check
 //

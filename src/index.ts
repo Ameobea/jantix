@@ -1,4 +1,6 @@
 import { applyMiddleware, compose, createStore, combineReducers } from 'redux';
+/// <reference path="react-redux.d.ts"/>
+import { useSelector as useSelectorInner } from 'react-redux';
 
 var _window: any = typeof window === 'undefined' ? {} : window;
 
@@ -175,6 +177,7 @@ export const buildStore = <
     }
   },
   middleware?: any,
+  // eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
   customReducers: CustomReducers = {} as CustomReducers
 ) => {
   type CustomActions = ValueOf<{ [StateKey in keyof CustomReducers]: SecondArgumentOf<CustomReducers[StateKey]> }>;
@@ -241,8 +244,13 @@ export const buildStore = <
 
   const getState = (): FullState => store.getState() as FullState;
 
+  const useSelector = <T>(
+    selector: (state: FullState) => T,
+    shallowEqual: (prev: T, cur: T) => boolean = (prev, cur) => prev === cur
+  ) => useSelectorInner(selector, shallowEqual);
+
   const __fullState: FullState = null as any;
   const __customActions: CustomActions = null as any;
 
-  return { actionCreators, dispatch, getState, __fullState, __customActions };
+  return { actionCreators, dispatch, getState, useSelector, store, __fullState, __customActions };
 };
