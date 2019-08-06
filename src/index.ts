@@ -53,7 +53,7 @@ const buildReduxModule = <
         AllSubReducers,
         (state: State, action: Extract<ReturnType<AllActionCreators>, { type: ActionType }>) => State
       >
-    >
+    >;
   }
 ) => ({
   initialState,
@@ -106,7 +106,7 @@ export const buildModule = <
         ValueOf<AllSubReducersOf<Actions>>,
         (state: State, action: Extract<ValueOf<AllActionsOf<Actions>>, { type: ActionType }>) => State
       >
-    >
+    >;
   }
 ) => {
   type OurAllActionCreators = ValueOf<AllActionCreatorsOf<Actions>>;
@@ -116,8 +116,6 @@ export const buildModule = <
 };
 
 type SecondArgumentOf<T> = T extends (arg1: any, arg2: infer A, ...args: any[]) => any ? A : undefined;
-
-type Id<T> = { [K in keyof T]: T[K] };
 
 /**
  * Given an object defining the reducers and their internal action creators and sub-reducers, builds a Redux store and
@@ -151,7 +149,7 @@ export const buildStore = <
   },
   CustomReducers extends { [key: string]: (state: any, action: { type: string }) => any } = {},
   CustomState extends { [K in keyof CustomReducers]: ReturnType<CustomReducers[K]> } = {
-    [K in keyof CustomReducers]: ReturnType<CustomReducers[K]>
+    [K in keyof CustomReducers]: ReturnType<CustomReducers[K]>;
   }
 >(
   modules: {
@@ -172,9 +170,9 @@ export const buildStore = <
               action: Extract<ValueOf<AllActionsOf<Modules[StateKey]['actions']>>, { type: ActionType }>
             ) => { [K in keyof Modules]: Modules[K]['initialState'] }[StateKey]
           >
-        >
+        >;
       };
-    }
+    };
   },
   middleware?: any,
   // eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
@@ -187,10 +185,10 @@ export const buildStore = <
       [StateKey in keyof Modules]: ReturnType<
         ValueOf<
           {
-            [ActionType in keyof Modules[StateKey]['actions']]: Modules[StateKey]['actions'][ActionType]['actionCreator']
+            [ActionType in keyof Modules[StateKey]['actions']]: Modules[StateKey]['actions'][ActionType]['actionCreator'];
           }
         >
-      >
+      >;
     }
   >;
   type AllActions = UserActions | CustomActions;
@@ -224,10 +222,10 @@ export const buildStore = <
         {
           [K in keyof Modules[StateKey]['actions']]: ReturnType<
             Modules[StateKey]['actions'][K]['actionCreator']
-          >['type']
+          >['type'];
         }
-      >]: Extract<Modules[StateKey]['actions'][ActionType]['actionCreator'], (...args: any[]) => { type: ActionType }>
-    }
+      >]: Extract<Modules[StateKey]['actions'][ActionType]['actionCreator'], (...args: any[]) => { type: ActionType }>;
+    };
   };
 
   const composeEnhancers: typeof compose = _window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
