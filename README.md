@@ -3,7 +3,7 @@
 ![NPM version badge for jantix](https://img.shields.io/npm/v/jantix.svg?style=flat-square)
 ![Last commit badge](https://img.shields.io/github/last-commit/ameobea/jantix.svg?style=flat-square)
 
-Jantix is a fully-featured TypeScript library that defines a self-contained, 100% type-safe Redux architecture. It allows for stores following a common pattern to be easily defined, merged, and used through the native Redux interface with type safety and consistency guarantees automatically applied.
+Jantix is a fully-featured TypeScript library that defines a tiny (837 bytes gzip'd), self-contained, 100% type-safe Redux architecture. It allows for stores following a common pattern to be easily defined, merged, and used through the native Redux interface with type safety and consistency guarantees automatically applied.
 
 In addition to enforcing a typed interface for interacting with the created store, it also provides many useful guarantees about the validity of the provided actions/reducers by preventing mismatches between action types, invalid actions, and mal-formed reducers all at compile-time.
 
@@ -21,7 +21,7 @@ Jantix works on the principle of coupling action creators, actions/types, reduce
 
 Jantix represents an entire segment of the Redux store as a structure combining each of these pieces together at the code level. The hierarchy looks like this:
 
-```
+```txt
            +-------------------------------------------------+
            |                                                 |
            |                Global Redux Store               |

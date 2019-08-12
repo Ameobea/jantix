@@ -6,16 +6,30 @@ var _window: any = typeof window === 'undefined' ? {} : window;
 
 type ValueOf<T> = T[keyof T];
 
+type SecondArgumentOf<T> = T extends (arg1: any, arg2: infer A, ...args: any[]) => any ? A : undefined;
+
+/**
+ * Action Groups are the fundamental components of the Jantix Redux architecture.  They consist of a
+ * single action creator and a sub-reducer for handling the created action.
+ *
+ * Multiple action groups are combined into a single module using the `buildModule` function.
+ */
 interface ActionGroup<
   ActionType extends string | number | symbol,
   ActionCreator extends (...args: any[]) => { type: ActionType },
   State,
   SubReducer extends (state: State, action: ReturnType<ActionCreator>) => State
-> {
+  > {
   actionCreator: ActionCreator;
   subReducer: SubReducer;
 }
 
+/**
+ * This function takes an object containing an action creator and sub-reducer and binds them
+ * together at the type level to create an action group.  At the JavaScript level it just passes
+ * through the object unchanged, but at the type level it facilicates inference of all parts of the
+ * action group and ensures that the types of the action creator and sub-reducer match.
+ */
 export const buildActionGroup = <
   ActionType extends string,
   ActionCreator extends (...args: any[]) => { type: ActionType },
@@ -27,10 +41,7 @@ export const buildActionGroup = <
 }: {
   actionCreator: ActionCreator;
   subReducer: SubReducer;
-}): ActionGroup<ActionType, ActionCreator, State, SubReducer> => ({
-  actionCreator,
-  subReducer,
-});
+}): ActionGroup<ActionType, ActionCreator, State, SubReducer> => ({ actionCreator, subReducer });
 
 /**
  * An internal helper type that narrows the type of `actions` to an object of `ActionGroup`s.
@@ -53,7 +64,7 @@ const buildReduxModule = <
         AllSubReducers,
         (state: State, action: Extract<ReturnType<AllActionCreators>, { type: ActionType }>) => State
       >
-    >;
+    >
   }
 ) => ({
   initialState,
@@ -66,7 +77,7 @@ type AllActionsOf<
       actionCreator: (...args: any[]) => { type: string };
     };
   }
-> = { [K in keyof T]: ReturnType<T[K]['actionCreator']> };
+  > = { [K in keyof T]: ReturnType<T[K]['actionCreator']> };
 
 type AllActionCreatorsOf<
   T extends {
@@ -74,7 +85,7 @@ type AllActionCreatorsOf<
       actionCreator: (...args: any[]) => { type: string };
     };
   }
-> = { [K in keyof T]: T[K]['actionCreator'] };
+  > = { [K in keyof T]: T[K]['actionCreator'] };
 
 type AllSubReducersOf<
   T extends {
@@ -82,11 +93,19 @@ type AllSubReducersOf<
       subReducer: (state: any, action: { type: string }) => any;
     };
   }
-> = { [K in keyof T]: T[K]['subReducer'] };
+  > = { [K in keyof T]: T[K]['subReducer'] };
 
+/**
+ * Given an object defining a Jantix module, performs static verification of its structure and
+ * returns a narrowed version of it suitable for use in `buildStore`.
+ *
+ * @param initialState The initial state that will be provided to all of the action groups
+ * @param actionGroups The action+sub-reducer pairs that will be grouped together under the created
+ *        module and share their state.
+ */
 export const buildModule = <
   State,
-  Actions extends {
+  ActionGroups extends {
     [type: string]: {
       actionCreator: (...args: any[]) => { type: string };
       subReducer: (state: State, action: { type: string }) => State;
@@ -94,28 +113,26 @@ export const buildModule = <
   }
 >(
   initialState: State,
-  actions: {
-    [ActionType in keyof Actions]: ActionGroup<
+  actionGroups: {
+    [ActionType in keyof ActionGroups]: ActionGroup<
       ActionType,
       Extract<
-        ValueOf<AllActionCreatorsOf<Actions>>,
-        (...args: any[]) => Extract<ValueOf<AllActionsOf<Actions>>, { type: ActionType }>
+        ValueOf<AllActionCreatorsOf<ActionGroups>>,
+        (...args: any[]) => Extract<ValueOf<AllActionsOf<ActionGroups>>, { type: ActionType }>
       >,
       State,
       Extract<
-        ValueOf<AllSubReducersOf<Actions>>,
-        (state: State, action: Extract<ValueOf<AllActionsOf<Actions>>, { type: ActionType }>) => State
+        ValueOf<AllSubReducersOf<ActionGroups>>,
+        (state: State, action: Extract<ValueOf<AllActionsOf<ActionGroups>>, { type: ActionType }>) => State
       >
-    >;
+    >
   }
 ) => {
-  type OurAllActionCreators = ValueOf<AllActionCreatorsOf<Actions>>;
-  type OurAllSubReducers = ValueOf<AllSubReducersOf<Actions>>;
+  type OurAllActionCreators = ValueOf<AllActionCreatorsOf<ActionGroups>>;
+  type OurAllSubReducers = ValueOf<AllSubReducersOf<ActionGroups>>;
 
-  return buildReduxModule<State, string, OurAllActionCreators, OurAllSubReducers>(initialState, actions);
+  return buildReduxModule<State, string, OurAllActionCreators, OurAllSubReducers>(initialState, actionGroups);
 };
-
-type SecondArgumentOf<T> = T extends (arg1: any, arg2: infer A, ...args: any[]) => any ? A : undefined;
 
 /**
  * Given an object defining the reducers and their internal action creators and sub-reducers, builds a Redux store and
@@ -149,7 +166,7 @@ export const buildStore = <
   },
   CustomReducers extends { [key: string]: (state: any, action: { type: string }) => any } = {},
   CustomState extends { [K in keyof CustomReducers]: ReturnType<CustomReducers[K]> } = {
-    [K in keyof CustomReducers]: ReturnType<CustomReducers[K]>;
+    [K in keyof CustomReducers]: ReturnType<CustomReducers[K]>
   }
 >(
   modules: {
@@ -170,9 +187,9 @@ export const buildStore = <
               action: Extract<ValueOf<AllActionsOf<Modules[StateKey]['actions']>>, { type: ActionType }>
             ) => { [K in keyof Modules]: Modules[K]['initialState'] }[StateKey]
           >
-        >;
+        >
       };
-    };
+    }
   },
   middleware?: any,
   // eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
@@ -185,10 +202,10 @@ export const buildStore = <
       [StateKey in keyof Modules]: ReturnType<
         ValueOf<
           {
-            [ActionType in keyof Modules[StateKey]['actions']]: Modules[StateKey]['actions'][ActionType]['actionCreator'];
+            [ActionType in keyof Modules[StateKey]['actions']]: Modules[StateKey]['actions'][ActionType]['actionCreator']
           }
         >
-      >;
+      >
     }
   >;
   type AllActions = UserActions | CustomActions;
@@ -217,16 +234,16 @@ export const buildStore = <
     }),
     {}
   ) as {
-    [StateKey in keyof Modules]: {
-      [ActionType in ValueOf<
-        {
-          [K in keyof Modules[StateKey]['actions']]: ReturnType<
-            Modules[StateKey]['actions'][K]['actionCreator']
-          >['type'];
-        }
-      >]: Extract<Modules[StateKey]['actions'][ActionType]['actionCreator'], (...args: any[]) => { type: ActionType }>;
+      [StateKey in keyof Modules]: {
+        [ActionType in ValueOf<
+          {
+            [K in keyof Modules[StateKey]['actions']]: ReturnType<
+              Modules[StateKey]['actions'][K]['actionCreator']
+            >['type']
+          }
+        >]: Extract<Modules[StateKey]['actions'][ActionType]['actionCreator'], (...args: any[]) => { type: ActionType }>
+      }
     };
-  };
 
   const composeEnhancers: typeof compose = _window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
@@ -247,8 +264,5 @@ export const buildStore = <
     shallowEqual: (prev: T, cur: T) => boolean = (prev, cur) => prev === cur
   ) => useSelectorInner(selector, shallowEqual);
 
-  const __fullState: FullState = null as any;
-  const __customActions: CustomActions = null as any;
-
-  return { actionCreators, dispatch, getState, useSelector, store, __fullState, __customActions };
+  return { actionCreators, dispatch, getState, useSelector, store };
 };
