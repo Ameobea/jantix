@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "module": "amd",
+    "module": "esnext",
     "target": "es5",
     "lib": ["es2018", "dom"],
     "sourceMap": true,
